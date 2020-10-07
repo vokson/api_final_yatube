@@ -4,3 +4,7 @@ pytest
 pytest-django
 djangorestframework
 djangorestframework-simplejwt
+django-filter
+flake8
+isort
+flake8-quotes
