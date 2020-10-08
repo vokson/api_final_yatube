@@ -1,30 +1,11 @@
-import logging
-import os
-import time
-
-from django.shortcuts import get_object_or_404
-from rest_framework import serializers
-from rest_framework import status
-from rest_framework.relations import SlugRelatedField
-from rest_framework.serializers import SlugField, ValidationError
-from rest_framework.validators import UniqueTogetherValidator
 from django.contrib.auth import get_user_model
-# from rest_framework.exceptions import APIException
+from rest_framework import serializers
+from rest_framework.relations import SlugRelatedField
+from rest_framework.validators import UniqueTogetherValidator
 
-from .models import Post, Comment, Group, Follow
-
+from .models import Comment, Follow, Group, Post
 
 User = get_user_model()
-
-FORMAT = '%(asctime)-15s %(message)s'
-logging.basicConfig(level=logging.INFO, format=FORMAT)
-log = logging.getLogger('TELEGRAM_BOT_APP')
-
-
-class AuthorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('username', )
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -34,86 +15,33 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    following = serializers.SlugRelatedField(
+        slug_field='username',
+        queryset=User.objects.all()
+    )
+
+    user = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
+
     class Meta:
-        fields = ('user', 'following', )
-        read_only_fields = ('user', )
+        fields = '__all__'
         model = Follow
-    
-    def to_representation(self, instance):
-        # log.info(f'to_representation(instance): {instance}')
-        # log.info(f'to_representation(type - instance): {type(instance)}')
-        # data = super(FollowSerializer, self).to_representation(instance)
-        # log.info(f'to_representation(data): {data}')
-        # log.info(f'to_representation(type - data): {type(data)}')
-        return {
-            'user': instance.user.username,
-            'following': instance.following.username
-        }
-
-    def to_internal_value(self, data):
-
-        # log.info(f'to_internal_value(user): {data.get("user")}')
-
-        following = data.get('following')
-        # log.info(f'to_internal_value(following): {following}')
-
-        if not following:
-            raise ValidationError({
-                'following': 'This field is required.'
-            })
-
-        author = User.objects.filter(username=following).first()
-        if not author:
-            raise ValidationError({
-                'following': 'There is no user with this username.'
-            })
-
-        return {
-            'following': author,
-        }
-
-    def validate(self, data):
-        user = self.context['request'].user
-        following = data.get('following')
-
-        log.info(f'validate (user): {user}')
-        log.info(f'validate (following): {following}')
-
-        if Follow.objects.filter(user=user, following=following).count() > 0:
-            raise ValidationError(
-                detail='this user-following pair already exists',
-                code=status.HTTP_400_BAD_REQUEST
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=['user', 'following']
             )
-
-        if user == following:
-            raise ValidationError(
-                detail='user and following shall be different',
-                code=status.HTTP_400_BAD_REQUEST
-            )
-
-        return {'following': following}
-
-    def create(self, validated_data):
-        user = validated_data.get('user')
-        # log.info(f'create (USER): {user}')
-
-        following = validated_data.get('following')
-        # log.info(f'create(AUTHOR): {author}')
-
-        return Follow.objects.create(user=user, following=following)
-            # log.info(f'create(follow): {follow}')
-            # log.info(f'create(follow - type): {type(follow)}')
-            # log.info(f'create(follow.user): {follow.user}')
-            # log.info(f'create(type - follow.user): {type(follow.user)}')
-            # log.info(f'create(follow.author): {follow.author}')
-            # log.info(f'create(type - follow.author): {type(follow.author)}')
+        ]
 
 
 class PostSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
 
     class Meta:
-        fields = ('id', 'text', 'author', 'pub_date',)
+        exclude = ('group', )
         model = Post
 
 

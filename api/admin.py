@@ -17,8 +17,6 @@ class CommentAdmin(admin.ModelAdmin):
 
 
 class GroupAdmin(admin.ModelAdmin):
-    # list_display = ('pk', 'title', 'slug',)
-    # search_fields = ('title', 'slug',)
     list_display = ('pk', 'title',)
     search_fields = ('title',)
     empty_value_display = '-пусто-'

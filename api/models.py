@@ -6,10 +6,6 @@ User = get_user_model()
 
 class Group(models.Model):
     title = models.CharField('Сообщество', max_length=200, blank=False, unique=True)
-    # slug = models.SlugField(
-    #     max_length=50, unique=True, null=False, blank=False
-    # )
-    # description = models.TextField('Описание', help_text='Дайте описание сообществу..')
 
     def __str__(self) -> str:
         return str(self.title)
@@ -26,7 +22,6 @@ class Post(models.Model):
         Group, on_delete=models.SET_NULL, blank=True, null=True,
         related_name='posts', verbose_name='Сообщество', help_text='Выберите сообщество'
     )
-    # image = models.ImageField(upload_to='posts/', null=True, blank=True)
 
     class Meta:
         ordering = ['-pub_date']
