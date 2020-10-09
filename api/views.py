@@ -1,39 +1,36 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import filters, mixins, viewsets
+from rest_framework import mixins, viewsets
+from rest_framework.filters import SearchFilter
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
     IsAuthenticated,
     IsAuthenticatedOrReadOnly
 )
 
 from .models import Follow, Group, Post
-from .permissions import IsOwnerOrReadOnly
+from .permissions import IsOwner, IsReadOnly
 from .serializers import (
-    CommentSerializer,
-    FollowSerializer,
-    GroupSerializer,
-    PostSerializer
-)
+    CommentSerializer, FollowSerializer, GroupSerializer, PostSerializer)
 
 
-class GroupViewSet(
+class BaseCreateListViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
+    pass
+
+
+class GroupViewSet(BaseCreateListViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, ]
 
 
-class FollowViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    viewsets.GenericViewSet
-):
+class FollowViewSet(BaseCreateListViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, ]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [SearchFilter]
     search_fields = ['=user__username', '=following__username']
 
     def perform_create(self, serializer):
@@ -41,24 +38,18 @@ class FollowViewSet(
 
 
 class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [IsReadOnly | (IsAuthenticated & IsOwner)]
+    filterset_fields = ['group']
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def get_queryset(self):
-        group_id = self.request.query_params.get('group', None)
-        if group_id is None:
-            return Post.objects.all()
-        else:
-            group = get_object_or_404(Group, pk=group_id)
-            return group.posts
-
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsReadOnly | (IsAuthenticated & IsOwner)]
 
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')

@@ -8,7 +8,7 @@ class Group(models.Model):
     title = models.CharField('Сообщество', max_length=200, blank=False, unique=True)
 
     def __str__(self) -> str:
-        return str(self.title)
+        return self.title
 
 
 class Post(models.Model):
