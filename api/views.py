@@ -1,13 +1,10 @@
 from rest_framework import mixins, viewsets
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import (
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly
-)
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import Follow, Group, Post
-from .permissions import IsOwner, IsReadOnly
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     CommentSerializer, FollowSerializer, GroupSerializer, PostSerializer)
 
@@ -40,7 +37,7 @@ class FollowViewSet(BaseCreateListViewSet):
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsReadOnly | (IsAuthenticated & IsOwner)]
+    permission_classes = [IsOwnerOrReadOnly, ]
     filterset_fields = ['group']
 
     def perform_create(self, serializer):
@@ -49,7 +46,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [IsReadOnly | (IsAuthenticated & IsOwner)]
+    permission_classes = [IsOwnerOrReadOnly, ]
 
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
